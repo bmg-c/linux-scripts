@@ -1,0 +1,1 @@
+setxkbmap -model pc105 -layout dvorak -option "terminate:ctrl_alt_bksp"

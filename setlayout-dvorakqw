@@ -1,0 +1,1 @@
+setxkbmap -model pc105 -layout us,ru -variant dvorak-qwerty, -option "grp:ctrl_shift_toggle" -option "terminate:ctrl_alt_bksp"

@@ -64,4 +64,5 @@ URxvt.keysym.Control-Right: \033[1;5C
 
 
 !! Xft
-Xft.dpi: 144
+! This is for my laptop
+! Xft.dpi: 144

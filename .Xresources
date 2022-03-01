@@ -14,16 +14,16 @@
 *.color9: #cc342b
 
 ! green
-*.color2: #198844
-*.color10: #198844
+*.color2: #00AEAE
+*.color10: #00AEAE
 
 ! yellow
 *.color3: #fba922
 *.color11: #fba922
 
 ! blue
-*.color4: #3971ed
-*.color12: #3971ed
+*.color4: #00AEAE
+*.color12: #00AEAE
 
 ! magenta
 *.color5: #a36ac7
@@ -42,7 +42,7 @@
 !! URxvt
 
 ! Appearance
-URxvt.font: xft:jetbrains mono:pixelsize=14:antialias=true
+URxvt.font: xft:jetbrains mono:pixelsize=21:antialias=true
 URxvt.letterSpace: 0
 URxvt.lineSpace: 0
 URxvt.cursorBlink: true
@@ -61,3 +61,7 @@ URxvt.keysym.Control-Up: \033[1;5A
 URxvt.keysym.Control-Down: \033[1;5B
 URxvt.keysym.Control-Left: \033[1;5D
 URxvt.keysym.Control-Right: \033[1;5C
+
+
+!! Xft
+Xft.dpi: 144

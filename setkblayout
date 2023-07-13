@@ -1,0 +1,37 @@
+#!/usr/bin/lua
+
+if arg[1] == nil or #(arg) > 1 then
+    print("Exiting...")
+    os.exit()
+end
+
+-- Choosing the layout
+
+local result
+
+if arg[1] == "-rofi" then
+    local handle = io.popen([[
+selected=$(echo "Engram Layout
+QWERTY Layout" | rofi -dmenu -p "Select Keyboard Layout: ")
+
+echo $selected]])
+    result = handle:read("*a")
+    handle:close()
+elseif arg[1] == "engram" then
+    result = "Engram Layout\n"
+elseif arg[1] == "qwerty" then
+    result = "QWERTY Layout\n"
+else
+    print("Exiting...")
+    os.exit()
+end
+
+-- Changing layout
+
+if result == "Engram Layout\n" then
+    os.execute('setxkbmap -model pc105 -layout us,us -variant engram-qwerty,russian-qwerty -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"')
+elseif result == "QWERTY Layout\n" then
+    os.execute('setxkbmap -model pc105 -layout us,ru -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"')
+end
+
+print(result)

@@ -1,37 +1,211 @@
 #!/usr/bin/lua
 
-if arg[1] == nil or #(arg) > 1 then
-    print("Exiting...")
+---------------
+-- Constants --
+---------------
+
+local HELP_STR <const> = [[usage: setkblayout [options] [PATTERN]
+
+PATTERN is layout:variant,layout:variant,...
+E.g. setkblayout us:engram-qwerty,us:russian-qwerty
+
+Available options are:
+  -rofi       uses rofi to choose layouts. PATTERN then becomes an array
+              of layout:variant,layout:variant,... separated by a space.
+              E.g. setkblayout -rofi us:engram-qwerty,us:russian-qwerty us:,ru:
+  -h, --help  print this message. Everything else ignored]]
+
+local FLAGS <const> = { "-rofi", "-h", "--help" }
+
+----------------------
+-- Helper functions --
+----------------------
+
+local function raise_error(msg)
+    print("setkblayout: " .. msg)
+    print(HELP_STR)
     os.exit()
 end
 
--- Choosing the layout
+local function str_in_table(table, str)
+    for _, v in ipairs(table) do
+        if v == str then
+            return true
+        end
+    end
+    return false
+end
 
-local result
+local function get_table_str(table)
+    local table_str = ""
+    for _, str in ipairs(table) do
+        table_str = table_str .. str .. "\n"
+    end
+    table_str = table_str:sub(0, -2)
+    return table_str
+end
 
-if arg[1] == "-rofi" then
-    local handle = io.popen([[
-selected=$(echo "Engram Layout
-QWERTY Layout" | rofi -dmenu -p "Select Keyboard Layout: ")
+local function get_arg_flag_table(arg)
+    local flag_table = {}
+    for _, argument in ipairs(arg) do
+        if argument:sub(1, 1) == "-" then
+            -- flag_table:insert(argument)
+            table.insert(flag_table, argument)
+        end
+    end
+    return flag_table
+end
 
-echo $selected]])
-    result = handle:read("*a")
-    handle:close()
-elseif arg[1] == "engram" then
-    result = "Engram Layout\n"
-elseif arg[1] == "qwerty" then
-    result = "QWERTY Layout\n"
-else
-    print("Exiting...")
+local function get_option_table(arg)
+    local option_table = {}
+    for _, argument in ipairs(arg) do
+        if argument:sub(1, 1) ~= "-" then
+            -- option_table:insert(argument)
+            table.insert(option_table, argument)
+        end
+    end
+    return option_table
+end
+
+local function get_char_amount(str, char)
+    local char_amount = 0
+    local start_index = 0
+    while true do
+        _, start_index = str:find(char, start_index)
+        if start_index == nil then
+            break
+        end
+
+        start_index = start_index + 1
+        char_amount = char_amount + 1
+    end
+    return char_amount
+end
+
+local function is_valid_option(option)
+    local start_index = 0
+    local char = ":"
+
+    local colon_amount = get_char_amount(option, ":")
+    local comma_amount = get_char_amount(option, ",")
+
+    if colon_amount - comma_amount ~= 1 then
+        return false
+    end
+
+    local i = 0
+    while true do
+        _, start_index = option:find(char, start_index)
+
+        char = (char == ":" and "," or ":")
+        i = i + 1
+
+        if start_index ~= nil then
+            start_index = start_index + 1
+        else
+            break
+        end
+    end
+
+    if i - 1 ~= colon_amount + comma_amount then
+        return false
+    end
+
+    return true
+end
+
+local function get_layout_variant(option)
+    local layout = ""
+    local variant = ""
+
+    if not is_valid_option(option) then
+        raise_error("one of the layout options is incorrect")
+    end
+
+    local start_index = 1
+    local end_index = 1
+    local char = ":"
+    while true do
+        _, end_index = option:find(char, start_index)
+
+        if end_index == nil then
+            variant = variant .. option:sub(start_index)
+            break
+        end
+
+        -- char = (char == ":" and "," or ":")
+        if char == ":" then
+            layout = layout .. option:sub(start_index, end_index - 1) .. ","
+            char = ","
+        else
+            variant = variant .. option:sub(start_index, end_index - 1) .. ","
+            char = ":"
+        end
+
+        start_index = end_index + 1
+    end
+
+    return layout:sub(1, -2), variant
+end
+
+------------
+-- Script --
+------------
+if #arg == 0 then
+    raise_error("no arguments provided")
+end
+
+local flag_table = get_arg_flag_table(arg)
+
+if str_in_table(flag_table, "-h") or str_in_table(flag_table, "--help") then
+    print(HELP_STR)
     os.exit()
 end
 
--- Changing layout
-
-if result == "Engram Layout\n" then
-    os.execute('setxkbmap -model pc105 -layout us,us -variant engram-qwerty,russian-qwerty -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"')
-elseif result == "QWERTY Layout\n" then
-    os.execute('setxkbmap -model pc105 -layout us,ru -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"')
+for _, flag in ipairs(flag_table) do
+    if not str_in_table(FLAGS, flag) then
+        raise_error(string.format("unrecognized option '%s'", flag))
+    end
 end
 
-print(result)
+if #arg > 1 and not str_in_table(flag_table, "-rofi") then
+    raise_error("PATTERN must contain only one argument unless -rofi is set")
+elseif #arg == 1 and str_in_table(arg, "-rofi") then
+    raise_error("no arguments provided")
+end
+
+local option_table = get_option_table(arg)
+local command = ""
+
+if not str_in_table(flag_table, "-rofi") then
+    local layout, variant = get_layout_variant(option_table[1])
+    command = ([[setxkbmap -model pc105 -layout %s -variant %s -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"]]):format(
+        layout,
+        variant
+    )
+    os.execute(command)
+    print(command)
+
+    os.exit()
+end
+
+local result = ""
+local handle = io.popen(([[
+selected=$(echo "%s" | rofi -dmenu -p "Select Keyboard Layout: ")
+echo $selected]]):format(get_table_str(option_table)))
+
+if handle == nil then
+    raise_error("error creating rofi instance")
+end
+
+result = handle:read("*a")
+handle:close()
+result = result:sub(1, -2)
+
+local layout, variant = get_layout_variant(result)
+command = ([[setxkbmap -model pc105 -layout %s -variant %s -option "grp:caps_toggle" -option "terminate:ctrl_alt_bksp"]]):format(
+    layout,
+    variant
+)
+os.execute(command)
+print(command)
